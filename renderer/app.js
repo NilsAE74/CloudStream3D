@@ -63,10 +63,17 @@ function createLODs(points) {
 }
 
 function updateLOD() {
-  let distance = camera.position.length();
-  if (distance < 20) currentLODPoints = lodPoints[0];
-  else if (distance < 50) currentLODPoints = lodPoints[1];
-  else currentLODPoints = lodPoints[2];
+  // If no LODs have been generated yet, nothing to update
+  if (!lodPoints || lodPoints.length === 0) {
+    const dbg = document.getElementById('debug-info');
+    if (dbg) dbg.textContent = `Points: 0`;
+    return;
+  }
+
+  const distance = camera.position.length();
+  if (distance < 20) currentLODPoints = lodPoints[0] || [];
+  else if (distance < 50) currentLODPoints = lodPoints[1] || lodPoints[0] || [];
+  else currentLODPoints = lodPoints[2] || lodPoints[lodPoints.length - 1] || [];
 
   if (cloud) scene.remove(cloud);
   if (surface) scene.remove(surface);
