@@ -2,7 +2,7 @@
   "name": "cloudstream3d",
   "version": "1.0.0",
   "description": "Desktop XYZ point cloud viewer",
-  "main": "main.js",
+  "main": "main.cjs",
   "type": "module",
   "scripts": {
     "start": "electron .",
@@ -17,8 +17,8 @@
     "appId": "com.cloudstream3d.app",
     "productName": "CloudStream3D",
     "files": [
-      "main.js",
-      "preload.js",
+      "main.cjs",
+      "preload.cjs",
       "renderer/**/*",
       "package.json"
     ],
