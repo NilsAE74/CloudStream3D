@@ -1,3 +1,5 @@
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
 import { parseXYZ } from './xyzParser.js';
 
 let scene, camera, renderer, controls, cloud;
@@ -12,11 +14,11 @@ function init() {
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   document.body.appendChild(renderer.domElement);
 
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls = new OrbitControls(camera, renderer.domElement);
 
-  document.getElementById("file").addEventListener("change", loadXYZ);
+  document.getElementById('file').addEventListener('change', loadXYZ);
 
-  window.addEventListener("resize", () => {
+  window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
