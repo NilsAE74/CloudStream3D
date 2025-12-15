@@ -9,6 +9,7 @@ function init() {
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
   document.body.appendChild(renderer.domElement);
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -48,12 +49,31 @@ function renderPoints(points) {
     if (p.r !== null) {
       hasColor = true;
       col.push(p.r / 255, p.g / 255, p.b / 255);
+    } else {
+      // push default white color so color array matches positions
+      col.push(1, 1, 1);
     }
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  if (hasColor) geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  if (hasColor) {
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  }
+
+  // center camera and controls on the point cloud
+  if (pos.length > 0) {
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox;
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+    const size = bbox.getSize(new THREE.Vector3()).length();
+    const distance = Math.max(size * 0.5, 1);
+    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(distance * 2 + 1)));
+    controls.target.copy(center);
+    controls.update();
+    camera.lookAt(center);
+  }
 
   cloud = new THREE.Points(
     geometry,

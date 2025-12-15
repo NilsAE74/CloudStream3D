@@ -4,7 +4,8 @@ export function parseXYZ(text) {
 
   for (const line of lines) {
     const p = line.trim().split(/\s+/).map(Number);
-    if (p.length >= 3) {
+    // require at least 3 finite numbers (skip comments/invalid lines)
+    if (p.length >= 3 && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2])) {
       points.push({
         x: p[0],
         y: p[1],
