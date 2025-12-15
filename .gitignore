@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+
+git add .
+git commit -m "Initial CloudStream3D desktop point cloud viewer"
+
+git branch -M main
+git remote add origin https://github.com/NilsAE74/CloudStream3D.git
+git push -u origin main
+
