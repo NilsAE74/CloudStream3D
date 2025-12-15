@@ -1,0 +1,21 @@
+# Test file for boundary detection - a simple 5x5x5 cube with interior points
+# Boundary points (corners and edges) should be highlighted in red
+# Interior points should be white
+0 0 0 255 255 255
+5 0 0 255 255 255
+0 5 0 255 255 255
+0 0 5 255 255 255
+5 5 0 255 255 255
+5 0 5 255 255 255
+0 5 5 255 255 255
+5 5 5 255 255 255
+1 1 1 255 255 255
+2 2 2 255 255 255
+3 3 3 255 255 255
+1 2 3 255 255 255
+2 3 1 255 255 255
+3 1 2 255 255 255
+2.5 2.5 2.5 255 255 255
+1.5 2.5 3.5 255 255 255
+3.5 1.5 2.5 255 255 255
+2.5 3.5 1.5 255 255 255
