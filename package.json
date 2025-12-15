@@ -1,0 +1,21 @@
+{
+  "name": "cloudstream3d",
+  "version": "1.0.0",
+  "description": "Desktop XYZ point cloud viewer",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.cloudstream3d.app",
+    "productName": "CloudStream3D",
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
