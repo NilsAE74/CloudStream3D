@@ -11,17 +11,19 @@
     "electron": "^30.0.0",
     "electron-builder": "^24.13.3"
   },
+  "author": "Your Name",
   "build": {
-  "appId": "com.cloudstream3d.app",
-  "productName": "CloudStream3D",
-  "files": [
-    "main.js",
-    "preload.js",
-    "renderer/**/*",
-    "package.json"
-  ],
-  "win": {
-    "target": "nsis"
-  },
-  "publish": null
+    "appId": "com.cloudstream3d.app",
+    "productName": "CloudStream3D",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "publish": null
+  }
 }
