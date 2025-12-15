@@ -16,7 +16,15 @@ function init() {
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
   document.body.appendChild(renderer.domElement);
+
+  // add simple lighting for surface meshes
+  const amb = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(amb);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(1, 2, 3);
+  scene.add(dir);
 
   controls = new OrbitControls(camera, renderer.domElement);
 
@@ -71,6 +79,9 @@ function updateLOD() {
     if (p.r !== null) {
       hasColor = true;
       col.push(p.r / 255, p.g / 255, p.b / 255);
+    } else if (hasColor) {
+      // if any vertex has color, ensure color array matches positions
+      col.push(1, 1, 1);
     }
   });
 
@@ -80,9 +91,23 @@ function updateLOD() {
 
   cloud = new THREE.Points(
     geometry,
-    new THREE.PointsMaterial({ size: 0.05, vertexColors: hasColor })
+    new THREE.PointsMaterial({ size: 0.1, sizeAttenuation: true, vertexColors: hasColor })
   );
   scene.add(cloud);
+
+  // center camera and controls on the current point cloud
+  if (pos.length > 0) {
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox;
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+    const size = bbox.getSize(new THREE.Vector3()).length();
+    const distance = Math.max(size * 0.5, 1);
+    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(distance * 2 + 1)));
+    controls.target.copy(center);
+    controls.update();
+    camera.lookAt(center);
+  }
 }
 
 function animate() {
