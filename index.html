@@ -1,15 +1,20 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>CloudStream3D — Velkommen</title>
+  <meta charset="UTF-8">
+  <title>CloudStream3D</title>
+  <link rel="stylesheet" href="renderer/styles.css">
 </head>
 <body>
-  <h1>CloudStream3D</h1>
-  <p>Åpne point cloud-visningen:</p>
-  <ul>
-    <li><a href="renderer/render_index.html">Åpne renderer/index.html</a></li>
-  </ul>
-  <p>Tip: start en lokal server før du åpner hvis du bruker ES-moduler.</p>
+  <div id="ui">
+    <input type="file" id="file" accept=".xyz">
+    <label for="pointSize">Point Size:</label>
+    <input type="range" id="pointSize" min="0.01" max="1" step="0.01" value="0.1">
+    <label for="zColorToggle">Color by Z:</label>
+    <input type="checkbox" id="zColorToggle">
+    <div id="loading" style="display:none; color:#fff; background:#333; padding:5px; margin-top:6px;">Loading...</div>
+    <div id="debug-info" style="font-size:12px; color:#111; margin-top:6px">Points: 0</div>
+  </div>
+  <script type="module" src="renderer/app.js"></script>
 </body>
 </html>
