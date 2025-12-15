@@ -29,3 +29,7 @@ jobs:
       with:
         name: CloudStream3D-Windows
         path: dist/
+
+git add .github
+git commit -m "Add GitHub Actions Windows build"
+git push
