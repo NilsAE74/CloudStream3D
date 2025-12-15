@@ -8,6 +8,7 @@ let lodPoints = [];
 let currentLODPoints = [];
 let cloud = null;
 let surface = null;
+let lastLODIndex = -1;
 
 function init() {
   scene = new THREE.Scene();
@@ -60,6 +61,7 @@ function createLODs(points) {
   lodPoints.push(points); // LOD0: alle punkter
   lodPoints.push(points.filter((_, i) => i % 10 === 0)); // LOD1: 10%
   lodPoints.push(points.filter((_, i) => i % 100 === 0)); // LOD2: 1%
+  lastLODIndex = -1; // force rebuild on next update
 }
 
 function updateLOD() {
@@ -71,9 +73,22 @@ function updateLOD() {
   }
 
   const distance = camera.position.length();
-  if (distance < 20) currentLODPoints = lodPoints[0] || [];
-  else if (distance < 50) currentLODPoints = lodPoints[1] || lodPoints[0] || [];
-  else currentLODPoints = lodPoints[2] || lodPoints[lodPoints.length - 1] || [];
+  let idx = 0;
+  if (distance < 20) idx = 0;
+  else if (distance < 50) idx = 1;
+  else idx = 2;
+  // clamp available LODs
+  idx = Math.min(idx, lodPoints.length - 1);
+  currentLODPoints = lodPoints[idx] || [];
+
+  // only rebuild geometry when LOD index changed
+  if (idx === lastLODIndex && cloud) {
+    // update debug overlay and return
+    const dbg = document.getElementById('debug-info');
+    if (dbg) dbg.textContent = `Points: ${currentLODPoints.length}`;
+    return;
+  }
+  lastLODIndex = idx;
 
   if (cloud) scene.remove(cloud);
   if (surface) scene.remove(surface);
