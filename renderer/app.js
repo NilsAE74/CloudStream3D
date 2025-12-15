@@ -90,6 +90,7 @@ function updateLOD() {
     return;
   }
   lastLODIndex = idx;
+}
 
 
 // Build the point cloud geometry from given points (no LOD)
@@ -136,62 +137,6 @@ function buildCloud(points) {
   const dbg = document.getElementById('debug-info');
   if (dbg) dbg.textContent = `Points: ${points.length}`;
 }
-  if (cloud) scene.remove(cloud);
-  if (surface) scene.remove(surface);
-
-  const pos = [];
-  const col = [];
-  const hasColor = currentLODPoints.some(p => p.r !== null);
-
-  currentLODPoints.forEach(p => {
-    pos.push(p.x, p.y, p.z);
-    if (hasColor) {
-      if (p.r !== null) col.push(p.r / 255, p.g / 255, p.b / 255);
-      else col.push(1, 1, 1);
-    }
-  });
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  if (hasColor) geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-
-  cloud = new THREE.Points(
-    geometry,
-    new THREE.PointsMaterial({ size: 0.1, sizeAttenuation: true, vertexColors: hasColor })
-  );
-  scene.add(cloud);
-
-  // center camera and controls on the current point cloud
-  if (pos.length > 0) {
-    geometry.computeBoundingBox();
-    const bbox = geometry.boundingBox;
-    const center = new THREE.Vector3();
-    bbox.getCenter(center);
-    const size = bbox.getSize(new THREE.Vector3()).length();
-    const distance = Math.max(size * 0.5, 1);
-    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(distance * 2 + 1)));
-    controls.target.copy(center);
-    controls.update();
-    camera.lookAt(center);
-  }
-
-  // update debug overlay with counts
-  const dbg = document.getElementById('debug-info');
-  if (dbg) dbg.textContent = `Points: ${currentLODPoints.length}`;
-
-  // center camera and controls on the current point cloud
-  if (pos.length > 0) {
-    geometry.computeBoundingBox();
-    const bbox = geometry.boundingBox;
-    const center = new THREE.Vector3();
-    bbox.getCenter(center);
-    const size = bbox.getSize(new THREE.Vector3()).length();
-    const distance = Math.max(size * 0.5, 1);
-    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(distance * 2 + 1)));
-    controls.target.copy(center);
-    controls.update();
-    camera.lookAt(center);
-  }
 }
 
 function animate() {
