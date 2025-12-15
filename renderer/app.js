@@ -1,5 +1,5 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from './lib/three.module.js';
+import { OrbitControls } from './lib/OrbitControls.js';
 import { parseXYZ } from './xyzParser.js';
 
 let scene, camera, renderer, controls, cloud;
