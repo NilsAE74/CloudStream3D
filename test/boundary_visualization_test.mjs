@@ -77,8 +77,10 @@ for (let theta = 0; theta < Math.PI * 2; theta += 0.5) {
   }
 }
 
-// Add some interior points
-for (let i = 0; i < 20; i++) {
+// Add some interior points (track their indices explicitly)
+const interiorPointStartIdx = spherePoints.length;
+const interiorPointCount = 20;
+for (let i = 0; i < interiorPointCount; i++) {
   const r = Math.random() * (radius - 1);
   const theta = Math.random() * Math.PI * 2;
   const phi = Math.random() * Math.PI;
@@ -92,7 +94,7 @@ const sphereBoundary = identifyBoundaryPoints(spherePoints);
 console.log(`Sphere: Total points = ${spherePoints.length}, Boundary points = ${sphereBoundary.size}`);
 
 // Verify that interior points are not marked as boundary
-const interiorPointsInBoundary = Array.from(sphereBoundary).filter(idx => idx >= spherePoints.length - 20).length;
+const interiorPointsInBoundary = Array.from(sphereBoundary).filter(idx => idx >= interiorPointStartIdx).length;
 console.log(`Interior points incorrectly marked as boundary: ${interiorPointsInBoundary}`);
 
 console.log('\n✓ All tests completed successfully!');

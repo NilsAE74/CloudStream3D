@@ -95,7 +95,7 @@ Z: 0.00 to 10.00 (size: 10.00)
 
 ### Algorithm Complexity
 
-- **Time**: O(n log n) for convex hull computation
+- **Time**: O(n log n) average case, O(n²) worst case for convex hull computation
 - **Space**: O(n) for storing boundary indices
 - **Typical Results**: 
   - Cube: 8 boundary points (corners)

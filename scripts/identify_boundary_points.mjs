@@ -25,15 +25,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function printUsage() {
-  console.log('Usage: node identify_boundary_points.mjs <input.xyz> [output.xyz]');
+  const scriptName = path.basename(__filename);
+  console.log(`Usage: node ${scriptName} <input.xyz> [output.xyz]`);
   console.log('');
   console.log('Arguments:');
   console.log('  input.xyz   - Input XYZ point cloud file');
   console.log('  output.xyz  - (Optional) Output file with boundary points marked in red');
   console.log('');
   console.log('Example:');
-  console.log('  node scripts/identify_boundary_points.mjs samples/sample.xyz');
-  console.log('  node scripts/identify_boundary_points.mjs samples/sample.xyz output_marked.xyz');
+  console.log(`  node scripts/${scriptName} samples/sample.xyz`);
+  console.log(`  node scripts/${scriptName} samples/sample.xyz output_marked.xyz`);
 }
 
 async function main() {
