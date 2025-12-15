@@ -56,7 +56,9 @@ export function voxelDownsampling(points, targetPercentage) {
   const volumeRatio = points.length / targetCount;
   const voxelSizeBase = Math.pow(volumeRatio, 1/3);
   
-  const voxelSize = Math.max(sizeX, sizeY, sizeZ) / 100 * voxelSizeBase;
+  // Divide space into approximately 100 voxels per dimension as a baseline
+  const VOXEL_GRID_DIVISIONS = 100;
+  const voxelSize = Math.max(sizeX, sizeY, sizeZ) / VOXEL_GRID_DIVISIONS * voxelSizeBase;
   
   // Group points into voxels
   const voxelMap = new Map();
@@ -158,8 +160,9 @@ export function distanceBasedFiltering(points, targetPercentage) {
   
   const result = [];
   const kept = [];
+  const targetCount = points.length * targetPercentage / 100;
   
-  points.forEach(p => {
+  for (const p of points) {
     let farEnough = true;
     
     for (const kp of kept) {
@@ -179,11 +182,11 @@ export function distanceBasedFiltering(points, targetPercentage) {
       kept.push(p);
       
       // Stop if we've reached approximately the target
-      if (result.length >= points.length * targetPercentage / 100) {
-        return;
+      if (result.length >= targetCount) {
+        break;
       }
     }
-  });
+  }
   
   return result;
 }
