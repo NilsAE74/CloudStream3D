@@ -1,9 +1,17 @@
+/**
+ * Parse XYZ point cloud file
+ * Optimized for handling large files (10M+ points)
+ * Uses line-by-line processing to handle large datasets efficiently
+ */
 export function parseXYZ(text) {
   const points = [];
   const lines = text.split(/\r?\n/);
-
+  
   for (const line of lines) {
-    const p = line.trim().split(/\s+/).map(Number);
+    const trimmed = line.trim();
+    if (trimmed.length === 0) continue;
+    
+    const p = trimmed.split(/\s+/).map(Number);
     // require at least 3 finite numbers (skip comments/invalid lines)
     if (p.length >= 3 && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2])) {
       points.push({
@@ -16,5 +24,6 @@ export function parseXYZ(text) {
       });
     }
   }
+  
   return points;
 }

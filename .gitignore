@@ -1,6 +1,10 @@
 node_modules/
 dist/
 .DS_Store
+renderer/demo.html
+renderer/demo.js
+renderer/test_cloud.xyz
+samples/large_test.xyz
 
 git add .
 git commit -m "Initial CloudStream3D desktop point cloud viewer"
