@@ -8,7 +8,13 @@
 <body>
   <div id="ui">
     <input type="file" id="file" accept=".xyz">
+    <button id="exportBtn">Export Current LOD</button>
+    <button id="smoothBtn">Show Smooth Surface</button>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
+  <script type="module" src="surfaceGenerator.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
