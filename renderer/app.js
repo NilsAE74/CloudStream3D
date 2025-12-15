@@ -17,6 +17,7 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setClearColor(0x111111);
   document.body.appendChild(renderer.domElement);
 
   // add simple lighting for surface meshes
@@ -72,16 +73,13 @@ function updateLOD() {
 
   const pos = [];
   const col = [];
-  let hasColor = false;
+  const hasColor = currentLODPoints.some(p => p.r !== null);
 
   currentLODPoints.forEach(p => {
     pos.push(p.x, p.y, p.z);
-    if (p.r !== null) {
-      hasColor = true;
-      col.push(p.r / 255, p.g / 255, p.b / 255);
-    } else if (hasColor) {
-      // if any vertex has color, ensure color array matches positions
-      col.push(1, 1, 1);
+    if (hasColor) {
+      if (p.r !== null) col.push(p.r / 255, p.g / 255, p.b / 255);
+      else col.push(1, 1, 1);
     }
   });
 
@@ -94,6 +92,24 @@ function updateLOD() {
     new THREE.PointsMaterial({ size: 0.1, sizeAttenuation: true, vertexColors: hasColor })
   );
   scene.add(cloud);
+
+  // center camera and controls on the current point cloud
+  if (pos.length > 0) {
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox;
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+    const size = bbox.getSize(new THREE.Vector3()).length();
+    const distance = Math.max(size * 0.5, 1);
+    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(distance * 2 + 1)));
+    controls.target.copy(center);
+    controls.update();
+    camera.lookAt(center);
+  }
+
+  // update debug overlay with counts
+  const dbg = document.getElementById('debug-info');
+  if (dbg) dbg.textContent = `Points: ${currentLODPoints.length}`;
 
   // center camera and controls on the current point cloud
   if (pos.length > 0) {
