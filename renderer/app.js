@@ -1,7 +1,7 @@
 import { parseXYZ } from './xyzParser.js';
 import { generateSurface } from './surfaceGenerator.js';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/js/controls/OrbitControls.js';
+import * as THREE from './lib/three.module.js';
+import { OrbitControls } from './lib/OrbitControls.js';
 
 let scene, camera, renderer, controls;
 let lodPoints = [];
