@@ -12,10 +12,16 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.cloudstream3d.app",
-    "productName": "CloudStream3D",
-    "win": {
-      "target": "nsis"
-    }
-  }
+  "appId": "com.cloudstream3d.app",
+  "productName": "CloudStream3D",
+  "files": [
+    "main.js",
+    "preload.js",
+    "renderer/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": "nsis"
+  },
+  "publish": null
 }
