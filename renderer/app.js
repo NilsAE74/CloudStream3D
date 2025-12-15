@@ -1,12 +1,14 @@
 import { parseXYZ } from './xyzParser.js';
 import * as THREE from './lib/three.module.js';
 import { OrbitControls } from './lib/OrbitControls.js';
-import { reducePointCloud, invertZValues, exportToXYZ } from './pointCloudReducer.js';
+import { reducePointCloud, invertZValues, exportToXYZ, identifyBoundaryPoints } from './pointCloudReducer.js';
 
 let scene, camera, renderer, controls;
 let cloud = null;
+let boundaryCloud = null;
 let originalPoints = [];
 let currentPoints = [];
+let boundaryIndices = null;
 let pointSize = 0.1;
 let useZColor = false;
 let reductionMethod = 'none';
@@ -33,6 +35,10 @@ function init() {
       cloud.material.size = pointSize;
       cloud.material.needsUpdate = true;
     }
+    if (boundaryCloud) {
+      boundaryCloud.material.size = pointSize * 1.5;
+      boundaryCloud.material.needsUpdate = true;
+    }
   });
   document.getElementById("zColorToggle").addEventListener("change", (e) => {
     useZColor = e.target.checked;
@@ -56,6 +62,7 @@ function init() {
   });
   
   document.getElementById("saveReduced").addEventListener("click", saveReducedCloud);
+  document.getElementById("calculateDistance").addEventListener("click", calculateDistanceStats);
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -76,16 +83,24 @@ function loadXYZ(e) {
 
   const reader = new FileReader();
   reader.onload = () => {
+    loadingDiv.textContent = 'Parsing file...';
     const points = parseXYZ(reader.result);
     originalPoints = points;
     
-    // Enable save button
-    document.getElementById("saveReduced").disabled = false;
-    
-    // Apply current reduction and inversion settings
-    applyReductionAndInversion();
-    
-    loadingDiv.style.display = 'none';
+    // Identify boundary points once
+    loadingDiv.textContent = 'Identifying boundary points...';
+    setTimeout(() => {
+      boundaryIndices = identifyBoundaryPoints(originalPoints);
+      console.log(`Found ${boundaryIndices.size} boundary points out of ${originalPoints.length}`);
+      
+      // Enable save button
+      document.getElementById("saveReduced").disabled = false;
+      
+      // Apply current reduction and inversion settings
+      applyReductionAndInversion();
+      
+      loadingDiv.style.display = 'none';
+    }, 10);
   };
   reader.readAsText(file);
 }
@@ -103,7 +118,7 @@ function applyReductionAndInversion() {
     
     // Apply reduction if method is not 'none'
     if (reductionMethod !== 'none') {
-      processedPoints = reducePointCloud(processedPoints, reductionMethod, reductionPercent);
+      processedPoints = reducePointCloud(processedPoints, reductionMethod, reductionPercent, boundaryIndices);
     }
     
     // Apply Z inversion if enabled
@@ -113,6 +128,7 @@ function applyReductionAndInversion() {
     
     currentPoints = processedPoints;
     buildCloud(processedPoints);
+    buildBoundaryCloud(originalPoints, boundaryIndices);
     loadingDiv.style.display = 'none';
   }, 10);
 }
@@ -201,31 +217,188 @@ function buildCloud(points) {
     const sizeX = maxX - minX;
     const sizeY = maxY - minY;
     const sizeZ = maxZ - minZ;
+    
+    const boundaryCount = boundaryIndices ? boundaryIndices.size : 0;
 
-    // Compute approximate average point distance
+    dbg.innerHTML = `
+      Points: ${points.length} (${boundaryCount} boundary)<br>
+      X: ${minX.toFixed(2)} to ${maxX.toFixed(2)} (size: ${sizeX.toFixed(2)})<br>
+      Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)} (size: ${sizeY.toFixed(2)})<br>
+      Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)} (size: ${sizeZ.toFixed(2)})<br>
+      <em>Click "Calculate Distance Stats" to compute distances</em>
+    `;
+  }
+}
+
+function buildBoundaryCloud(points, boundaryIndices) {
+  // Remove existing boundary cloud
+  if (boundaryCloud) {
+    scene.remove(boundaryCloud);
+    boundaryCloud.geometry.dispose();
+    boundaryCloud.material.dispose();
+    boundaryCloud = null;
+  }
+  
+  if (!boundaryIndices || boundaryIndices.size === 0) return;
+  
+  // Build geometry for boundary points
+  const pos = [];
+  const col = [];
+  
+  Array.from(boundaryIndices).forEach(idx => {
+    const p = points[idx];
+    pos.push(p.x, p.y, p.z);
+    // Red color for boundary points
+    col.push(1, 0, 0);
+  });
+  
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  
+  // Make boundary points slightly larger and always visible
+  const material = new THREE.PointsMaterial({ 
+    size: pointSize * 1.5, 
+    sizeAttenuation: true,
+    vertexColors: true,
+    depthTest: false, // Always render on top
+    transparent: true,
+    opacity: 0.8
+  });
+  
+  boundaryCloud = new THREE.Points(geometry, material);
+  scene.add(boundaryCloud);
+}
+
+function calculateDistanceStats() {
+  if (currentPoints.length === 0) {
+    alert('Please load a point cloud first');
+    return;
+  }
+
+  const dbg = document.getElementById('debug-info');
+  if (!dbg) return;
+
+  const points = currentPoints;
+  
+  // Get bounds
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  let minZ = Infinity, maxZ = -Infinity;
+  
+  points.forEach(p => {
+    minX = Math.min(minX, p.x);
+    maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y);
+    minZ = Math.min(minZ, p.z);
+    maxZ = Math.max(maxZ, p.z);
+  });
+  
+  const sizeX = maxX - minX;
+  const sizeY = maxY - minY;
+  const sizeZ = maxZ - minZ;
+
+  dbg.innerHTML = `
+    Points: ${points.length}<br>
+    X: ${minX.toFixed(2)} to ${maxX.toFixed(2)} (size: ${sizeX.toFixed(2)})<br>
+    Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)} (size: ${sizeY.toFixed(2)})<br>
+    Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)} (size: ${sizeZ.toFixed(2)})<br>
+    <em>Calculating distances...</em>
+  `;
+
+  // Use setTimeout to allow UI to update
+  setTimeout(() => {
+    // Compute approximate average point distance using random sampling
     let avgDistance = 0;
-    const numSamples = Math.min(1000, points.length * (points.length - 1) / 2);
+    const numSamples = Math.min(1000, points.length);
     let sampleCount = 0;
-    for (let i = 0; i < Math.min(100, points.length); i++) {
-      for (let j = i + 1; j < Math.min(i + 11, points.length); j++) {
-        const dx = points[i].x - points[j].x;
-        const dy = points[i].y - points[j].y;
-        const dz = points[i].z - points[j].z;
+    
+    // Sample random pairs of points for more accurate statistics
+    for (let i = 0; i < numSamples; i++) {
+      const idx1 = Math.floor(Math.random() * points.length);
+      const idx2 = Math.floor(Math.random() * points.length);
+      
+      if (idx1 !== idx2) {
+        const p1 = points[idx1];
+        const p2 = points[idx2];
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dz = p1.z - p2.z;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         avgDistance += dist;
         sampleCount++;
       }
     }
-    if (sampleCount > 0) avgDistance /= sampleCount;
+    
+    if (sampleCount > 0) {
+      avgDistance /= sampleCount;
+    }
+    
+    // K-Nearest Neighbors (K=3) distance calculation
+    // Select 100 random points and find average distance to their 3 nearest neighbors
+    let knnDistance = 0;
+    let knnDistX = 0;
+    let knnDistY = 0;
+    let knnDistZ = 0;
+    const knnSamples = Math.min(100, points.length);
+    const K = 3; // Number of nearest neighbors
+    let knnCount = 0;
+    
+    for (let i = 0; i < knnSamples; i++) {
+      const idx = Math.floor(Math.random() * points.length);
+      const p = points[idx];
+      
+      // Find K nearest neighbors by checking all other points
+      const distanceData = [];
+      for (let j = 0; j < points.length; j++) {
+        if (idx !== j) {
+          const p2 = points[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dz = p.z - p2.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          distanceData.push({ dist, dx: Math.abs(dx), dy: Math.abs(dy), dz: Math.abs(dz) });
+        }
+      }
+      
+      // Sort and get K smallest distances
+      distanceData.sort((a, b) => a.dist - b.dist);
+      const kNearest = distanceData.slice(0, K);
+      
+      // Calculate average of K nearest (total and per axis)
+      const avgK = kNearest.reduce((sum, d) => sum + d.dist, 0) / kNearest.length;
+      const avgKX = kNearest.reduce((sum, d) => sum + d.dx, 0) / kNearest.length;
+      const avgKY = kNearest.reduce((sum, d) => sum + d.dy, 0) / kNearest.length;
+      const avgKZ = kNearest.reduce((sum, d) => sum + d.dz, 0) / kNearest.length;
+      
+      knnDistance += avgK;
+      knnDistX += avgKX;
+      knnDistY += avgKY;
+      knnDistZ += avgKZ;
+      knnCount++;
+    }
+    
+    if (knnCount > 0) {
+      knnDistance /= knnCount;
+      knnDistX /= knnCount;
+      knnDistY /= knnCount;
+      knnDistZ /= knnCount;
+    }
 
     dbg.innerHTML = `
       Points: ${points.length}<br>
       X: ${minX.toFixed(2)} to ${maxX.toFixed(2)} (size: ${sizeX.toFixed(2)})<br>
       Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)} (size: ${sizeY.toFixed(2)})<br>
       Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)} (size: ${sizeZ.toFixed(2)})<br>
-      Avg Point Distance: ${avgDistance.toFixed(4)}
+      Avg Point Distance: ${avgDistance.toFixed(4)}<br>
+      Avg K-NN Distance (K=3):<br>
+      &nbsp;&nbsp;Total: ${knnDistance.toFixed(4)}<br>
+      &nbsp;&nbsp;X: ${knnDistX.toFixed(4)}<br>
+      &nbsp;&nbsp;Y: ${knnDistY.toFixed(4)}<br>
+      &nbsp;&nbsp;Z: ${knnDistZ.toFixed(4)}
     `;
-  }
+  }, 10);
 }
 
 function animate() {

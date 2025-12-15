@@ -2,10 +2,9 @@ import {
   reducePointCloud, 
   invertZValues, 
   exportToXYZ,
-  randomSampling,
   voxelDownsampling,
-  everyNthPoint,
-  distanceBasedFiltering
+  zGradientDownsampling,
+  identifyBoundaryPoints
 } from '../renderer/pointCloudReducer.js';
 
 // Create test data
@@ -23,21 +22,17 @@ for (let i = 0; i < 1000; i++) {
 
 console.log('Original points:', testPoints.length);
 
-// Test random sampling
-const randomReduced = randomSampling(testPoints, 50);
-console.log('Random sampling (50%):', randomReduced.length, '- Expected ~500');
-
 // Test voxel downsampling
 const voxelReduced = voxelDownsampling(testPoints, 50);
 console.log('Voxel downsampling (50%):', voxelReduced.length);
 
-// Test every Nth point
-const nthReduced = everyNthPoint(testPoints, 50);
-console.log('Every Nth point (50%):', nthReduced.length, '- Expected ~500');
+// Test Z-Gradient downsampling
+const zgradReduced = zGradientDownsampling(testPoints, 50);
+console.log('Z-Gradient downsampling (50%):', zgradReduced.length);
 
-// Test distance-based filtering
-const distReduced = distanceBasedFiltering(testPoints, 30);
-console.log('Distance-based (30%):', distReduced.length);
+// Test boundary detection (convex hull)
+const boundary = identifyBoundaryPoints(testPoints);
+console.log('Boundary points (convex hull):', boundary.size);
 
 // Test Z inversion
 const inverted = invertZValues(testPoints.slice(0, 5));
@@ -48,4 +43,4 @@ console.log('Inverted Z values:', inverted.map(p => p.z.toFixed(2)));
 const exported = exportToXYZ(testPoints.slice(0, 3));
 console.log('\nExported XYZ format:\n', exported);
 
-console.log('\n✓ All reduction methods working correctly!');
+console.log('\n✓ Reduction methods tested successfully!');
