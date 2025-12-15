@@ -1,12 +1,17 @@
 import { parseXYZ } from './xyzParser.js';
 import * as THREE from './lib/three.module.js';
 import { OrbitControls } from './lib/OrbitControls.js';
+import { reducePointCloud, invertZValues, exportToXYZ } from './pointCloudReducer.js';
 
 let scene, camera, renderer, controls;
 let cloud = null;
+let originalPoints = [];
 let currentPoints = [];
 let pointSize = 0.1;
 let useZColor = false;
+let reductionMethod = 'none';
+let reductionPercent = 100;
+let invertZ = false;
 
 function init() {
   scene = new THREE.Scene();
@@ -33,6 +38,24 @@ function init() {
     useZColor = e.target.checked;
     if (currentPoints.length > 0) buildCloud(currentPoints);
   });
+  
+  document.getElementById("reductionMethod").addEventListener("change", (e) => {
+    reductionMethod = e.target.value;
+    applyReductionAndInversion();
+  });
+  
+  document.getElementById("reductionPercent").addEventListener("input", (e) => {
+    reductionPercent = parseFloat(e.target.value);
+    document.getElementById("reductionPercentLabel").textContent = `${reductionPercent}%`;
+    applyReductionAndInversion();
+  });
+  
+  document.getElementById("invertZ").addEventListener("change", (e) => {
+    invertZ = e.target.checked;
+    applyReductionAndInversion();
+  });
+  
+  document.getElementById("saveReduced").addEventListener("click", saveReducedCloud);
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -54,11 +77,60 @@ function loadXYZ(e) {
   const reader = new FileReader();
   reader.onload = () => {
     const points = parseXYZ(reader.result);
-    currentPoints = points;
-    buildCloud(points);
+    originalPoints = points;
+    
+    // Enable save button
+    document.getElementById("saveReduced").disabled = false;
+    
+    // Apply current reduction and inversion settings
+    applyReductionAndInversion();
+    
     loadingDiv.style.display = 'none';
   };
   reader.readAsText(file);
+}
+
+function applyReductionAndInversion() {
+  if (originalPoints.length === 0) return;
+  
+  const loadingDiv = document.getElementById('loading');
+  loadingDiv.style.display = 'block';
+  loadingDiv.textContent = 'Processing...';
+  
+  // Use setTimeout to allow UI to update before heavy computation
+  setTimeout(() => {
+    let processedPoints = [...originalPoints];
+    
+    // Apply reduction if method is not 'none'
+    if (reductionMethod !== 'none') {
+      processedPoints = reducePointCloud(processedPoints, reductionMethod, reductionPercent);
+    }
+    
+    // Apply Z inversion if enabled
+    if (invertZ) {
+      processedPoints = invertZValues(processedPoints);
+    }
+    
+    currentPoints = processedPoints;
+    buildCloud(processedPoints);
+    loadingDiv.style.display = 'none';
+  }, 10);
+}
+
+function saveReducedCloud() {
+  if (currentPoints.length === 0) return;
+  
+  const xyzContent = exportToXYZ(currentPoints);
+  const blob = new Blob([xyzContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reduced_cloud_${currentPoints.length}pts.xyz`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // Build the point cloud geometry from given points (no LOD)

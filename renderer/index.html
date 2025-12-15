@@ -12,6 +12,27 @@
     <input type="range" id="pointSize" min="0.01" max="1" step="0.01" value="0.1">
     <label for="zColorToggle">Color by Z:</label>
     <input type="checkbox" id="zColorToggle">
+    
+    <hr style="width:100%; border:1px solid #ccc; margin:8px 0;">
+    
+    <label for="reductionMethod">Reduction Method:</label>
+    <select id="reductionMethod">
+      <option value="none">None (100%)</option>
+      <option value="random">Random Sampling</option>
+      <option value="voxel">Voxel Downsampling</option>
+      <option value="nth">Every Nth Point</option>
+      <option value="distance">Distance-based</option>
+    </select>
+    
+    <label for="reductionPercent">Target Points (%):</label>
+    <input type="range" id="reductionPercent" min="1" max="100" step="1" value="100">
+    <span id="reductionPercentLabel">100%</span>
+    
+    <label for="invertZ">Invert Z-axis:</label>
+    <input type="checkbox" id="invertZ">
+    
+    <button id="saveReduced" disabled>Save Reduced Cloud</button>
+    
     <div id="loading" style="display:none; color:#fff; background:#333; padding:5px; margin-top:6px;">Loading...</div>
     <div id="debug-info" style="font-size:12px; color:#111; margin-top:6px">Points: 0</div>
   </div>

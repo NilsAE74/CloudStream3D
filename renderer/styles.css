@@ -9,10 +9,50 @@ body {
   top: 10px;
   left: 10px;
   z-index: 10;
-  background: rgba(255,255,255,0.85);
-  padding: 10px;
+  background: rgba(255,255,255,0.92);
+  padding: 12px;
   border-radius: 5px;
   display: flex;
   flex-direction: column;
   gap: 5px;
+  max-width: 280px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+#ui label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+#ui input[type="range"] {
+  width: 100%;
+}
+
+#ui select {
+  padding: 4px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+}
+
+#ui button {
+  padding: 8px 12px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+#ui button:hover:not(:disabled) {
+  background: #45a049;
+}
+
+#ui button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
 }
