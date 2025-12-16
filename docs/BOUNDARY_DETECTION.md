@@ -8,14 +8,15 @@ CloudStream3D includes an automatic boundary point detection feature that identi
 
 ### 1. Detection Algorithm
 
-The boundary detection uses a **3D Convex Hull** algorithm implemented in `identifyBoundaryPoints()` function:
+The boundary detection uses a **2D Convex Hull** algorithm on the horizontal plane implemented in `identifyBoundaryPoints()` function:
 
 - Takes all points in the cloud as input
-- Computes the convex hull (the smallest convex 3D shape that contains all points)
-- Returns the indices of points that lie on the surface of the convex hull
-- These points represent the outer boundary/edges of the point cloud
+- Projects points onto the horizontal (x, y) plane, **ignoring the z-coordinate**
+- Computes the 2D convex hull (the smallest convex polygon that contains all projected points)
+- Returns the indices of points that lie on the boundary of the 2D convex hull
+- These points represent the outer boundary/edges in the **horizontal direction only**
 
-**File**: `renderer/pointCloudReducer.js` (lines 13-46)
+**File**: `renderer/pointCloudReducer.js` (lines 13-80)
 
 ### 2. Storage
 
@@ -81,7 +82,8 @@ Z: 0.00 to 10.00 (size: 10.00)
 1. **`identifyBoundaryPoints(points)`**
    - Input: Array of point objects `{x, y, z, r, g, b}`
    - Output: Set of boundary point indices
-   - Algorithm: 3D Convex Hull
+   - Algorithm: 2D Convex Hull (Andrew's monotone chain algorithm)
+   - Z-coordinate: **Ignored** - only x and y are used
 
 2. **`buildBoundaryCloud(points, boundaryIndices)`**
    - Input: All points and boundary indices Set
@@ -95,12 +97,13 @@ Z: 0.00 to 10.00 (size: 10.00)
 
 ### Algorithm Complexity
 
-- **Time**: O(n log n) average case, O(n²) worst case for convex hull computation
+- **Time**: O(n log n) for 2D convex hull computation
 - **Space**: O(n) for storing boundary indices
 - **Typical Results**: 
-  - Cube: 8 boundary points (corners)
-  - Sphere surface: ~70% of points (entire surface)
-  - Mixed geometry: Varies based on shape
+  - Cube: 4 boundary points (horizontal corners)
+  - Flat surface: Points at the perimeter in x-y plane
+  - Terrain data: Points at the edge of the surveyed area (regardless of elevation)
+  - Mixed geometry: Varies based on horizontal footprint
 
 ## Testing
 
@@ -117,20 +120,29 @@ Test files provided:
 
 ## Technical Notes
 
-### Why Convex Hull?
+### Why 2D Horizontal Convex Hull?
 
-The convex hull algorithm identifies the **outermost points** that form the smallest convex shape containing all points. This is ideal for:
+The 2D convex hull algorithm identifies the **outermost points in the horizontal plane** (x-y plane), ignoring vertical position (z-coordinate). This is ideal for:
 
-- Terrain data (finds edge of surveyed area)
-- Object scans (finds object boundary)
-- Point cloud cleaning (preserves shape outline)
+- **Terrain data**: Finds the perimeter of the surveyed area, regardless of elevation changes
+- **Building/structure scans**: Identifies the horizontal footprint boundary
+- **Area calculations**: Determines the outer boundary for horizontal area measurements
+- **Point cloud cleaning**: Preserves the horizontal extent of the dataset
+
+### Key Advantage: Z-Independence
+
+By ignoring the z-coordinate:
+- A point at (x=0, y=0, z=100) and (x=0, y=0, z=0) are treated as the same horizontal position
+- Only the points furthest out **horizontally** are detected as boundaries
+- Vertical features (like cliffs or overhangs) don't affect horizontal boundary detection
 
 ### Limitations
 
-- Only detects the **convex boundary** (outermost envelope)
-- Concave features (holes, indentations) are not detected as boundaries
-- Interior points in concave regions may be marked as boundary points
+- Only detects the **horizontal convex boundary** (outermost envelope in x-y plane)
+- Concave features in the horizontal plane are not detected as boundaries
+- Z-coordinate variations are completely ignored
 - For more sophisticated edge detection, consider:
+  - 3D convex hull (for true 3D boundaries)
   - Normal-based edge detection
   - Curvature analysis
   - Density-based methods

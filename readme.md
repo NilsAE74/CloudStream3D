@@ -26,9 +26,10 @@ npm start
 
 ## Boundary Point Detection (Randpunkter)
 
-CloudStream3D automatically identifies boundary/edge points in your point cloud:
+CloudStream3D automatically identifies boundary/edge points in your point cloud based on **horizontal position only**:
 
-- **Automatic Detection**: When you load an XYZ file, boundary points are automatically identified using a 3D convex hull algorithm
+- **Automatic Detection**: When you load an XYZ file, boundary points are automatically identified using a 2D convex hull algorithm (x-y plane)
+- **Z-Coordinate Ignored**: Only horizontal position (x, y) is considered - finds points furthest out horizontally regardless of elevation
 - **Visual Highlighting**: Boundary points are displayed in **red color** and rendered 1.5× larger for easy identification
 - **Always Preserved**: During point cloud reduction, boundary points are always preserved to maintain the shape outline
 - **Separate Storage**: Boundary points are stored in a separate array for processing
