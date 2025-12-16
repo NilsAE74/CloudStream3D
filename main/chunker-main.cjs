@@ -1,5 +1,5 @@
 /**
- * chunker-main.js
+ * chunker-main.cjs
  * Node.js module for chunking large XYZ files into smaller files
  * Runs in Electron main process
  */
@@ -50,7 +50,6 @@ async function chunkFileNode(inputPath, outDir, options = {}, progressCallback =
   let currentChunkPoints = 0;
   let totalPoints = 0;
   let bytesRead = 0;
-  let currentWriteStream = null;
   
   // Progress reporting throttle
   let lastProgressReport = Date.now();
@@ -182,10 +181,7 @@ async function chunkFileNode(inputPath, outDir, options = {}, progressCallback =
     return metadata;
     
   } catch (error) {
-    // Clean up on error
-    if (currentWriteStream) {
-      currentWriteStream.end();
-    }
+    // Re-throw error for caller to handle
     throw error;
   }
 }

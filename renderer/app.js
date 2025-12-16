@@ -446,7 +446,8 @@ async function handleChunkFile() {
   }
   
   // Determine output directory (same directory as input file)
-  const inputDir = inputPath.substring(0, inputPath.lastIndexOf('/') || inputPath.lastIndexOf('\\'));
+  const lastSlash = Math.max(inputPath.lastIndexOf('/'), inputPath.lastIndexOf('\\'));
+  const inputDir = lastSlash > 0 ? inputPath.substring(0, lastSlash) : '.';
   const outDir = inputDir + '/chunks_output';
   
   // Show status and reset progress
