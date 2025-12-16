@@ -63,6 +63,7 @@ function init() {
   
   document.getElementById("saveReduced").addEventListener("click", saveReducedCloud);
   document.getElementById("calculateDistance").addEventListener("click", calculateDistanceStats);
+  document.getElementById("identifyBoundary").addEventListener("click", identifyBoundary);
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -87,22 +88,38 @@ function loadXYZ(e) {
     const points = parseXYZ(reader.result);
     originalPoints = points;
     
-    // Identify boundary points once
-    loadingDiv.textContent = 'Identifying boundary points...';
-    setTimeout(() => {
-      boundaryIndices = identifyBoundaryPoints(originalPoints);
-      console.log(`Found ${boundaryIndices.size} boundary points out of ${originalPoints.length}`);
-      
-      // Enable save button
-      document.getElementById("saveReduced").disabled = false;
-      
-      // Apply current reduction and inversion settings
-      applyReductionAndInversion();
-      
-      loadingDiv.style.display = 'none';
-    }, 10);
+    // Reset boundary indices when loading new file
+    boundaryIndices = null;
+    
+    // Enable buttons
+    document.getElementById("saveReduced").disabled = false;
+    document.getElementById("identifyBoundary").disabled = false;
+    
+    // Apply current reduction and inversion settings
+    applyReductionAndInversion();
+    
+    loadingDiv.style.display = 'none';
   };
   reader.readAsText(file);
+}
+
+function identifyBoundary() {
+  if (originalPoints.length === 0) return;
+  
+  const loadingDiv = document.getElementById('loading');
+  loadingDiv.style.display = 'block';
+  loadingDiv.textContent = 'Identifying boundary points...';
+  
+  // Use setTimeout to allow UI to update before heavy computation
+  setTimeout(() => {
+    boundaryIndices = identifyBoundaryPoints(originalPoints);
+    console.log(`Found ${boundaryIndices.size} boundary points out of ${originalPoints.length}`);
+    
+    // Rebuild the boundary cloud with the new boundary indices
+    buildBoundaryCloud(originalPoints, boundaryIndices);
+    
+    loadingDiv.style.display = 'none';
+  }, 10);
 }
 
 function applyReductionAndInversion() {
