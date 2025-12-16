@@ -10,6 +10,7 @@
  */
 export function identifyBoundaryPoints(points) {
   if (points.length === 0) return new Set();
+  // For less than 3 points, all points are on the boundary (degenerate case)
   if (points.length < 3) return new Set(points.map((_, idx) => idx));
 
   // Create array of {x, y, index} for 2D convex hull computation
@@ -39,8 +40,8 @@ function convexHull2D(points) {
     return a.y - b.y;
   });
 
-  // Cross product of vectors OA and OB where O is origin
-  // Returns positive if OAB makes a counter-clockwise turn
+  // Cross product of vectors OA and OB where O is the origin point
+  // Returns: positive for counter-clockwise turn, negative for clockwise, zero for collinear
   const cross = (o, a, b) => {
     return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
   };
