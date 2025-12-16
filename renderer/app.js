@@ -74,6 +74,14 @@ function init() {
   
   document.getElementById("saveReduced").addEventListener("click", saveReducedCloud);
   document.getElementById("calculateDistance").addEventListener("click", calculateDistanceStats);
+  
+  // File chunking functionality
+  document.getElementById("splitLargeFile").addEventListener("click", handleChunkFile);
+  
+  // Set up progress listener for chunking
+  if (window.electronAPI && window.electronAPI.onChunkProgress) {
+    window.electronAPI.onChunkProgress(updateChunkProgress);
+  }
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -406,6 +414,101 @@ function animate() {
   requestAnimationFrame(animate);
   controls.update();
   renderer.render(scene, camera);
+}
+
+/**
+ * Handle file chunking operation
+ */
+async function handleChunkFile() {
+  // Check if electronAPI is available
+  if (!window.electronAPI || !window.electronAPI.chunkFile) {
+    alert('File chunking is only available in Electron app');
+    return;
+  }
+  
+  // Get the currently loaded file from the file input
+  const fileInput = document.getElementById('file');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert('Please select an XYZ file first using the file input above');
+    return;
+  }
+  
+  // Get chunk size from input
+  const chunkSizeMB = parseInt(document.getElementById('chunkSizeMB').value) || 100;
+  
+  // Get file path (available in Electron)
+  const inputPath = file.path;
+  if (!inputPath) {
+    alert('Could not access file path. Make sure you are running in Electron.');
+    return;
+  }
+  
+  // Determine output directory (same directory as input file)
+  const lastSlash = Math.max(inputPath.lastIndexOf('/'), inputPath.lastIndexOf('\\'));
+  const inputDir = lastSlash > 0 ? inputPath.substring(0, lastSlash) : '.';
+  const outDir = inputDir + '/chunks_output';
+  
+  // Show status and reset progress
+  const statusDiv = document.getElementById('chunkStatus');
+  const progressText = document.getElementById('chunkProgressText');
+  const progressBar = document.getElementById('chunkProgressBar');
+  
+  statusDiv.style.display = 'block';
+  progressText.textContent = 'Starting...';
+  progressBar.style.width = '0%';
+  
+  try {
+    // Start chunking operation
+    const metadata = await window.electronAPI.chunkFile({
+      inputPath,
+      outDir,
+      chunkSizeMB
+    });
+    
+    // Show completion message
+    progressText.innerHTML = `
+      ✓ Complete! Created ${metadata.totalChunks} chunks<br>
+      Total points: ${metadata.totalPoints.toLocaleString()}<br>
+      Output: ${outDir}
+    `;
+    progressBar.style.width = '100%';
+    progressBar.style.background = '#4CAF50';
+    
+    alert(`File chunking complete!\n\nCreated ${metadata.totalChunks} chunk(s)\nTotal points: ${metadata.totalPoints}\nOutput directory: ${outDir}`);
+    
+  } catch (error) {
+    progressText.textContent = `Error: ${error.message}`;
+    progressBar.style.width = '100%';
+    progressBar.style.background = '#f44336';
+    alert(`Error during chunking: ${error.message}`);
+  }
+}
+
+/**
+ * Update progress bar during chunking
+ */
+function updateChunkProgress(progressData) {
+  const progressText = document.getElementById('chunkProgressText');
+  const progressBar = document.getElementById('chunkProgressBar');
+  
+  if (!progressText || !progressBar) return;
+  
+  const { bytesRead, totalBytes, percent, currentPartIndex, currentPartPoints } = progressData;
+  
+  // Update progress bar
+  progressBar.style.width = `${percent.toFixed(1)}%`;
+  
+  // Update text
+  const mbRead = (bytesRead / (1024 * 1024)).toFixed(1);
+  const mbTotal = (totalBytes / (1024 * 1024)).toFixed(1);
+  
+  progressText.innerHTML = `
+    Processing: ${percent.toFixed(1)}%<br>
+    ${mbRead} / ${mbTotal} MB<br>
+    Chunk ${currentPartIndex}: ${currentPartPoints.toLocaleString()} points
+  `;
 }
 
 init();

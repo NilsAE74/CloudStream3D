@@ -5,11 +5,6 @@ renderer/demo.html
 renderer/demo.js
 renderer/test_cloud.xyz
 samples/large_test.xyz
-
-git add .
-git commit -m "Initial CloudStream3D desktop point cloud viewer"
-
-git branch -M main
-git remote add origin https://github.com/NilsAE74/CloudStream3D.git
-git push -u origin main
-
+samples/test_output/
+samples/chunks_output/
+**/chunks_output/
