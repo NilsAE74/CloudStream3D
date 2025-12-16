@@ -3,8 +3,7 @@ import {
   invertZValues, 
   exportToXYZ,
   voxelDownsampling,
-  zGradientDownsampling,
-  identifyBoundaryPoints
+  zGradientDownsampling
 } from '../renderer/pointCloudReducer.js';
 
 // Create test data
@@ -29,10 +28,6 @@ console.log('Voxel downsampling (50%):', voxelReduced.length);
 // Test Z-Gradient downsampling
 const zgradReduced = zGradientDownsampling(testPoints, 50);
 console.log('Z-Gradient downsampling (50%):', zgradReduced.length);
-
-// Test boundary detection (convex hull)
-const boundary = identifyBoundaryPoints(testPoints);
-console.log('Boundary points (convex hull):', boundary.size);
 
 // Test Z inversion
 const inverted = invertZValues(testPoints.slice(0, 5));

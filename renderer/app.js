@@ -1,30 +1,39 @@
 import { parseXYZ } from './xyzParser.js';
 import * as THREE from './lib/three.module.js';
 import { OrbitControls } from './lib/OrbitControls.js';
-import { reducePointCloud, invertZValues, exportToXYZ, identifyBoundaryPoints } from './pointCloudReducer.js';
+import { reducePointCloud, invertZValues, exportToXYZ } from './pointCloudReducer.js';
 
 let scene, camera, renderer, controls;
 let cloud = null;
-let boundaryCloud = null;
 let originalPoints = [];
 let currentPoints = [];
-let boundaryIndices = null;
 let pointSize = 0.1;
-let useZColor = false;
+let useZColor = true;
 let reductionMethod = 'none';
 let reductionPercent = 100;
 let invertZ = false;
+let decimalPlaces = 6;
 
 function init() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  // Position camera so Z-axis points upward
   camera.position.set(10, 10, 10);
+  camera.up.set(0, 0, 1); // Set up vector to point in +Z direction
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   renderer.setClearColor(0x111111);
   document.body.appendChild(renderer.domElement);
+
+  // Add lighting for mesh visualization
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(5, 5, 10);
+  scene.add(directionalLight);
 
   controls = new OrbitControls(camera, renderer.domElement);
 
@@ -34,10 +43,6 @@ function init() {
     if (cloud) {
       cloud.material.size = pointSize;
       cloud.material.needsUpdate = true;
-    }
-    if (boundaryCloud) {
-      boundaryCloud.material.size = pointSize * 1.5;
-      boundaryCloud.material.needsUpdate = true;
     }
   });
   document.getElementById("zColorToggle").addEventListener("change", (e) => {
@@ -61,6 +66,11 @@ function init() {
     applyReductionAndInversion();
   });
   
+  document.getElementById("decimalPlaces").addEventListener("change", (e) => {
+    decimalPlaces = Math.max(0, Math.min(10, parseInt(e.target.value) || 6));
+    document.getElementById("decimalPlaces").value = decimalPlaces;
+  });
+  
   document.getElementById("saveReduced").addEventListener("click", saveReducedCloud);
   document.getElementById("calculateDistance").addEventListener("click", calculateDistanceStats);
 
@@ -72,6 +82,25 @@ function init() {
 
   animate();
 }
+
+// Create a circle texture for points
+function createCircleTexture() {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+const circleTexture = createCircleTexture();
 
 function loadXYZ(e) {
   const file = e.target.files[0];
@@ -87,12 +116,7 @@ function loadXYZ(e) {
     const points = parseXYZ(reader.result);
     originalPoints = points;
     
-    // Identify boundary points once
-    loadingDiv.textContent = 'Identifying boundary points...';
     setTimeout(() => {
-      boundaryIndices = identifyBoundaryPoints(originalPoints);
-      console.log(`Found ${boundaryIndices.size} boundary points out of ${originalPoints.length}`);
-      
       // Enable save button
       document.getElementById("saveReduced").disabled = false;
       
@@ -118,7 +142,7 @@ function applyReductionAndInversion() {
     
     // Apply reduction if method is not 'none'
     if (reductionMethod !== 'none') {
-      processedPoints = reducePointCloud(processedPoints, reductionMethod, reductionPercent, boundaryIndices);
+      processedPoints = reducePointCloud(processedPoints, reductionMethod, reductionPercent);
     }
     
     // Apply Z inversion if enabled
@@ -128,7 +152,6 @@ function applyReductionAndInversion() {
     
     currentPoints = processedPoints;
     buildCloud(processedPoints);
-    buildBoundaryCloud(originalPoints, boundaryIndices);
     loadingDiv.style.display = 'none';
   }, 10);
 }
@@ -136,7 +159,7 @@ function applyReductionAndInversion() {
 function saveReducedCloud() {
   if (currentPoints.length === 0) return;
   
-  const xyzContent = exportToXYZ(currentPoints);
+  const xyzContent = exportToXYZ(currentPoints, decimalPlaces);
   const blob = new Blob([xyzContent], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   
@@ -190,7 +213,12 @@ function buildCloud(points) {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   if (useZColor || hasColor) geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
 
-  const material = new THREE.PointsMaterial({ size: pointSize, sizeAttenuation: true });
+  const material = new THREE.PointsMaterial({ 
+    size: pointSize, 
+    sizeAttenuation: true,
+    map: circleTexture,
+    alphaTest: 0.5
+  });
   if (useZColor || hasColor) {
     material.vertexColors = true;
   }
@@ -206,7 +234,8 @@ function buildCloud(points) {
     bbox.getCenter(center);
     const size = bbox.getSize(new THREE.Vector3()).length();
     const distance = Math.max(size * 0.5, 1);
-    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(distance * 2 + 1)));
+    // Position camera at an angle with Z-up orientation
+    camera.position.copy(center.clone().add(new THREE.Vector3(1, 1, 0.5).normalize().multiplyScalar(distance * 2 + 1)));
     controls.target.copy(center);
     controls.update();
     camera.lookAt(center);
@@ -217,57 +246,15 @@ function buildCloud(points) {
     const sizeX = maxX - minX;
     const sizeY = maxY - minY;
     const sizeZ = maxZ - minZ;
-    
-    const boundaryCount = boundaryIndices ? boundaryIndices.size : 0;
 
     dbg.innerHTML = `
-      Points: ${points.length} (${boundaryCount} boundary)<br>
+      Points: ${points.length}<br>
       X: ${minX.toFixed(2)} to ${maxX.toFixed(2)} (size: ${sizeX.toFixed(2)})<br>
       Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)} (size: ${sizeY.toFixed(2)})<br>
       Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)} (size: ${sizeZ.toFixed(2)})<br>
       <em>Click "Calculate Distance Stats" to compute distances</em>
     `;
   }
-}
-
-function buildBoundaryCloud(points, boundaryIndices) {
-  // Remove existing boundary cloud
-  if (boundaryCloud) {
-    scene.remove(boundaryCloud);
-    boundaryCloud.geometry.dispose();
-    boundaryCloud.material.dispose();
-    boundaryCloud = null;
-  }
-  
-  if (!boundaryIndices || boundaryIndices.size === 0) return;
-  
-  // Build geometry for boundary points
-  const pos = [];
-  const col = [];
-  
-  Array.from(boundaryIndices).forEach(idx => {
-    const p = points[idx];
-    pos.push(p.x, p.y, p.z);
-    // Red color for boundary points
-    col.push(1, 0, 0);
-  });
-  
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  
-  // Make boundary points slightly larger and always visible
-  const material = new THREE.PointsMaterial({ 
-    size: pointSize * 1.5, 
-    sizeAttenuation: true,
-    vertexColors: true,
-    depthTest: false, // Always render on top
-    transparent: true,
-    opacity: 0.8
-  });
-  
-  boundaryCloud = new THREE.Points(geometry, material);
-  scene.add(boundaryCloud);
 }
 
 function calculateDistanceStats() {

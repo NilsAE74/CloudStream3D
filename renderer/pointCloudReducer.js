@@ -3,92 +3,22 @@
  * Provides methods for reducing point cloud density
  */
 
-import * as THREE from './lib/three.module.js';
-import { ConvexHull } from './lib/math/ConvexHull.js';
-
-/**
- * Identify boundary/outer points using a 3D convex hull.
- * Returns indices of points that lie on the convex hull (strict outer extremes).
- */
-export function identifyBoundaryPoints(points) {
-  if (points.length === 0) return new Set();
-  if (points.length < 4) return new Set(points.map((_, idx) => idx));
-
-  // Build THREE.Vector3 array and a map from Vector3 object to original index
-  const vecs = new Array(points.length);
-  const indexByVector = new Map();
-  for (let i = 0; i < points.length; i++) {
-    const v = new THREE.Vector3(points[i].x, points[i].y, points[i].z);
-    vecs[i] = v;
-    indexByVector.set(v, i);
-  }
-
-  // Compute convex hull
-  const hull = new ConvexHull();
-  hull.setFromPoints(vecs);
-
-  // Collect unique vertex indices used by hull faces
-  const boundaryIndices = new Set();
-  const faces = hull.faces;
-  for (let fi = 0; fi < faces.length; fi++) {
-    const face = faces[fi];
-    // Each face is a triangle; iterate its three half-edges
-    let edge = face.edge;
-    for (let k = 0; k < 3; k++) {
-      const vec = edge.vertex.point; // THREE.Vector3
-      const idx = indexByVector.get(vec);
-      if (idx !== undefined) boundaryIndices.add(idx);
-      edge = edge.next;
-    }
-  }
-
-  return boundaryIndices;
-}
-
 /**
  * Method 1: Grid-based Voxel Downsampling
  * Divides space into voxels and keeps one point per voxel (the centroid)
- * Always preserves boundary points (if provided)
  */
-export function voxelDownsampling(points, targetPercentage, boundaryIndices = null) {
+export function voxelDownsampling(points, targetPercentage) {
   if (targetPercentage >= 100) return [...points];
   if (points.length === 0) return [];
   
-  // Use provided boundary indices or empty set
-  if (!boundaryIndices) {
-    boundaryIndices = new Set();
-  }
-  const boundaryPoints = Array.from(boundaryIndices).map(idx => points[idx]);
-  
-  // Separate boundary points from interior points
-  const interiorPoints = [];
-  const interiorIndices = [];
-  
-  points.forEach((p, idx) => {
-    if (!boundaryIndices.has(idx)) {
-      interiorPoints.push(p);
-      interiorIndices.push(idx);
-    }
-  });
-  
-  // If all points are boundary points, return them all
-  if (interiorPoints.length === 0) return [...points];
-  
-  // Calculate target count for interior points (accounting for boundary points)
-  const totalTarget = Math.max(1, Math.floor(points.length * targetPercentage / 100));
-  const interiorTarget = Math.max(1, totalTarget - boundaryPoints.length);
-  
-  // If boundary points already meet or exceed target, return just them
-  if (boundaryPoints.length >= totalTarget) {
-    return boundaryPoints;
-  }
+  const targetCount = Math.max(1, Math.floor(points.length * targetPercentage / 100));
   
   // Calculate bounds for voxel grid
   let minX = Infinity, maxX = -Infinity;
   let minY = Infinity, maxY = -Infinity;
   let minZ = Infinity, maxZ = -Infinity;
   
-  interiorPoints.forEach(p => {
+  points.forEach(p => {
     minX = Math.min(minX, p.x);
     maxX = Math.max(maxX, p.x);
     minY = Math.min(minY, p.y);
@@ -100,9 +30,6 @@ export function voxelDownsampling(points, targetPercentage, boundaryIndices = nu
   const sizeX = maxX - minX;
   const sizeY = maxY - minY;
   const sizeZ = maxZ - minZ;
-  
-  // Calculate voxel size based on target percentage for interior points
-  const targetCount = interiorTarget;
   
   // Estimate the volume and compute voxel grid dimensions
   const volume = sizeX * sizeY * sizeZ;
@@ -126,10 +53,10 @@ export function voxelDownsampling(points, targetPercentage, boundaryIndices = nu
   // Use a minimum multiplier to avoid too-small voxels at high percentages
   const voxelSize = avgSpacing * Math.max(scaleFactor - 0.98, 0.001);
   
-  // Group interior points into voxels
+  // Group points into voxels
   const voxelMap = new Map();
   
-  interiorPoints.forEach(p => {
+  points.forEach(p => {
     const vx = Math.floor((p.x - minX) / voxelSize);
     const vy = Math.floor((p.y - minY) / voxelSize);
     const vz = Math.floor((p.z - minZ) / voxelSize);
@@ -171,50 +98,22 @@ export function voxelDownsampling(points, targetPercentage, boundaryIndices = nu
     });
   });
   
-  // Combine boundary points with downsampled interior points
-  return [...boundaryPoints, ...interiorResult];
+  // Return downsampled interior points
+  return interiorResult;
 }
 
 /**
  * Method 2: Z-Gradient Based Downsampling
  * Keeps more points in areas with high Z-variation (slopes, edges)
- * and fewer points in flat areas (low delta Z)
- * Always preserves boundary points (if provided)
  */
-export function zGradientDownsampling(points, targetPercentage, boundaryIndices = null) {
+export function zGradientDownsampling(points, targetPercentage) {
   if (targetPercentage >= 100) return [...points];
   if (points.length === 0) return [];
   
-  // Use provided boundary indices or empty set
-  if (!boundaryIndices) {
-    boundaryIndices = new Set();
-  }
-  const boundaryPoints = Array.from(boundaryIndices).map(idx => points[idx]);
+  const targetCount = Math.max(1, Math.floor(points.length * targetPercentage / 100));
   
-  // Separate interior points
-  const interiorPoints = [];
-  const interiorIndices = [];
-  
-  points.forEach((p, idx) => {
-    if (!boundaryIndices.has(idx)) {
-      interiorPoints.push({ point: p, idx });
-    }
-  });
-  
-  // If all points are boundary points, return them all
-  if (interiorPoints.length === 0) return [...points];
-  
-  // Calculate target count for interior points
-  const totalTarget = Math.max(1, Math.floor(points.length * targetPercentage / 100));
-  const interiorTarget = Math.max(1, totalTarget - boundaryPoints.length);
-  
-  // If boundary points already meet or exceed target, return just them
-  if (boundaryPoints.length >= totalTarget) {
-    return boundaryPoints;
-  }
-  
-  // Calculate Z-gradient importance for interior points only
-  const pointsWithGradient = interiorPoints.map(({ point: p, idx }) => {
+  // Calculate Z-gradient importance for all points
+  const pointsWithGradient = points.map((p, idx) => {
     // Sample nearby points to estimate local Z-gradient
     let maxZDiff = 0;
     const sampleSize = Math.min(10, points.length - 1);
@@ -252,22 +151,19 @@ export function zGradientDownsampling(points, targetPercentage, boundaryIndices 
     return gradientDiff;
   });
   
-  // Take top interiorTarget points
-  const interiorResult = pointsWithGradient.slice(0, interiorTarget).map(item => item.point);
-  
-  // Combine boundary points with downsampled interior points
-  return [...boundaryPoints, ...interiorResult];
+  // Take top targetCount points
+  return pointsWithGradient.slice(0, targetCount).map(item => item.point);
 }
 
 /**
  * Apply the selected reduction method
  */
-export function reducePointCloud(points, method, targetPercentage, boundaryIndices = null) {
+export function reducePointCloud(points, method, targetPercentage) {
   switch (method) {
     case 'voxel':
-      return voxelDownsampling(points, targetPercentage, boundaryIndices);
+      return voxelDownsampling(points, targetPercentage);
     case 'zgradient':
-      return zGradientDownsampling(points, targetPercentage, boundaryIndices);
+      return zGradientDownsampling(points, targetPercentage);
     default:
       return points;
   }
@@ -290,13 +186,16 @@ export function invertZValues(points) {
 /**
  * Export points to XYZ format string
  */
-export function exportToXYZ(points) {
+export function exportToXYZ(points, decimalPlaces = 6) {
   let output = '';
   points.forEach(p => {
+    const x = p.x.toFixed(decimalPlaces);
+    const y = p.y.toFixed(decimalPlaces);
+    const z = p.z.toFixed(decimalPlaces);
     if (p.r !== null && p.g !== null && p.b !== null) {
-      output += `${p.x} ${p.y} ${p.z} ${p.r} ${p.g} ${p.b}\n`;
+      output += `${x} ${y} ${z} ${p.r} ${p.g} ${p.b}\n`;
     } else {
-      output += `${p.x} ${p.y} ${p.z}\n`;
+      output += `${x} ${y} ${z}\n`;
     }
   });
   return output;
