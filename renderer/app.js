@@ -296,33 +296,6 @@ function calculateDistanceStats() {
 
   // Use setTimeout to allow UI to update
   setTimeout(() => {
-    // Compute approximate average point distance using random sampling
-    let avgDistance = 0;
-    const numSamples = Math.min(1000, points.length);
-    let sampleCount = 0;
-    
-    // Sample random pairs of points for more accurate statistics
-    for (let i = 0; i < numSamples; i++) {
-      const idx1 = Math.floor(Math.random() * points.length);
-      const idx2 = Math.floor(Math.random() * points.length);
-      
-      if (idx1 !== idx2) {
-        const p1 = points[idx1];
-        const p2 = points[idx2];
-        const dx = p1.x - p2.x;
-        const dy = p1.y - p2.y;
-        const dz = p1.z - p2.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        avgDistance += dist;
-        sampleCount++;
-      }
-    }
-    
-    if (sampleCount > 0) {
-      avgDistance /= sampleCount;
-    }
-    
-    // K-Nearest Neighbors (K=3) distance calculation
     // Select 100 random points and find average distance to their 3 nearest neighbors
     let knnDistance = 0;
     let knnDistX = 0;
@@ -378,7 +351,6 @@ function calculateDistanceStats() {
       X: ${minX.toFixed(2)} to ${maxX.toFixed(2)} (size: ${sizeX.toFixed(2)})<br>
       Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)} (size: ${sizeY.toFixed(2)})<br>
       Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)} (size: ${sizeZ.toFixed(2)})<br>
-      Avg Point Distance: ${avgDistance.toFixed(4)}<br>
       Avg K-NN Distance (K=3):<br>
       &nbsp;&nbsp;Total: ${knnDistance.toFixed(4)}<br>
       &nbsp;&nbsp;X: ${knnDistX.toFixed(4)}<br>
