@@ -38,6 +38,7 @@ function init() {
   controls = new OrbitControls(camera, renderer.domElement);
 
   document.getElementById("file").addEventListener("change", loadXYZ);
+  document.getElementById("loadSampleWave").addEventListener("click", loadSampleWave);
   document.getElementById("pointSize").addEventListener("input", (e) => {
     pointSize = parseFloat(e.target.value);
     if (cloud) {
@@ -81,6 +82,47 @@ function init() {
   });
 
   animate();
+}
+
+function generateWaveData(width = 20, height = 20, wavelength = 4, amplitude = 5) {
+  const points = [];
+  const step = width / 40; // Create a grid of points
+  
+  for (let x = -width / 2; x < width / 2; x += step) {
+    for (let y = -height / 2; y < height / 2; y += step) {
+      const z = amplitude * Math.sin((x + y) / wavelength) * Math.cos(x / wavelength);
+      points.push({
+        x: x,
+        y: y,
+        z: z,
+        r: null,
+        g: null,
+        b: null
+      });
+    }
+  }
+  
+  return points;
+}
+
+function loadSampleWave() {
+  const loadingDiv = document.getElementById('loading');
+  loadingDiv.style.display = 'block';
+  loadingDiv.textContent = 'Generating wave...';
+
+  setTimeout(() => {
+    originalPoints = generateWaveData();
+    
+    setTimeout(() => {
+      // Enable save button
+      document.getElementById("saveReduced").disabled = false;
+      
+      // Apply current reduction and inversion settings
+      applyReductionAndInversion();
+      
+      loadingDiv.style.display = 'none';
+    }, 10);
+  }, 10);
 }
 
 // Create a circle texture for points
