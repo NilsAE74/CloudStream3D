@@ -36,6 +36,23 @@
     
     <button id="calculateDistance">Calculate Distance Stats</button>
     
+    <hr style="width:100%; border:1px solid #ccc; margin:8px 0;">
+    
+    <div style="margin-top: 10px;">
+      <h4 style="margin:5px 0;">File Chunking</h4>
+      <label for="chunkSizeMB">Chunk Size (MB):</label>
+      <input type="number" id="chunkSizeMB" min="1" max="1000" step="1" value="100" style="width:80px;">
+      <button id="splitLargeFile">Split Large File</button>
+      <div id="chunkStatus" style="font-size:12px; color:#333; margin-top:4px; display:none;">
+        <div id="chunkProgress" style="margin-top:4px;">
+          <div style="background:#ddd; border-radius:3px; overflow:hidden; height:20px;">
+            <div id="chunkProgressBar" style="background:#4CAF50; height:100%; width:0%; transition:width 0.2s;"></div>
+          </div>
+          <div id="chunkProgressText" style="margin-top:4px;">Ready</div>
+        </div>
+      </div>
+    </div>
+    
     <div id="loading" style="display:none; color:#fff; background:#333; padding:5px; margin-top:6px;">Loading...</div>
     <div id="debug-info" style="font-size:12px; color:#111; margin-top:6px">Points: 0</div>
   </div>
