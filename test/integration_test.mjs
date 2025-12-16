@@ -45,31 +45,29 @@ const exportContent = exportToXYZ(markedPoints);
 const lines = exportContent.trim().split('\n');
 console.log(`✓ Exported ${lines.length} points to XYZ format`);
 
-// Test 6: Verify boundary detection accuracy
+// Test 6: Verify boundary detection accuracy (2D horizontal boundary)
 console.log('\nTest 6: Verify boundary detection accuracy');
-const expectedCorners = [
-  { x: 0, y: 0, z: 0 },
-  { x: 5, y: 0, z: 0 },
-  { x: 0, y: 5, z: 0 },
-  { x: 0, y: 0, z: 5 },
-  { x: 5, y: 5, z: 0 },
-  { x: 5, y: 0, z: 5 },
-  { x: 0, y: 5, z: 5 },
-  { x: 5, y: 5, z: 5 }
+// With 2D horizontal boundary detection, we expect only the 4 corners
+// of the horizontal projection (extreme points in x-y plane)
+const expectedHorizontalCorners = [
+  { x: 0, y: 0 },  // Bottom-left
+  { x: 5, y: 0 },  // Bottom-right
+  { x: 5, y: 5 },  // Top-right
+  { x: 0, y: 5 }   // Top-left
 ];
 
 let correctCorners = 0;
-expectedCorners.forEach(corner => {
+expectedHorizontalCorners.forEach(corner => {
   const found = boundaryPointsArray.some(p => 
-    p.x === corner.x && p.y === corner.y && p.z === corner.z
+    p.x === corner.x && p.y === corner.y
   );
   if (found) correctCorners++;
 });
 
-if (correctCorners === expectedCorners.length) {
-  console.log(`✓ All ${expectedCorners.length} expected corners detected as boundary points`);
+if (correctCorners === expectedHorizontalCorners.length) {
+  console.log(`✓ All ${expectedHorizontalCorners.length} expected horizontal corners detected as boundary points`);
 } else {
-  console.log(`⚠ Only ${correctCorners}/${expectedCorners.length} corners detected`);
+  console.log(`⚠ Only ${correctCorners}/${expectedHorizontalCorners.length} horizontal corners detected`);
 }
 
 // Test 7: Verify interior points are not boundaries

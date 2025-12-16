@@ -46,22 +46,19 @@ boundaryPoints.slice(0, 5).forEach((p, i) => {
   console.log(`  Point ${i}: x=${p.x}, y=${p.y}, z=${p.z}`);
 });
 
-// Verify that corner points are detected as boundary points
-const corners = [
-  { x: 0, y: 0, z: 0 },
-  { x: 10, y: 0, z: 0 },
-  { x: 0, y: 10, z: 0 },
-  { x: 0, y: 0, z: 10 },
-  { x: 10, y: 10, z: 0 },
-  { x: 10, y: 0, z: 10 },
-  { x: 0, y: 10, z: 10 },
-  { x: 10, y: 10, z: 10 }
+// Verify that horizontal corner points are detected as boundary points
+// With 2D horizontal boundary detection, only the 4 horizontal corners should be found
+const horizontalCorners = [
+  { x: 0, y: 0 },
+  { x: 10, y: 0 },
+  { x: 0, y: 10 },
+  { x: 10, y: 10 }
 ];
 
-console.log('\nVerifying corner points are detected as boundaries:');
-corners.forEach(corner => {
-  const found = boundaryPoints.some(p => p.x === corner.x && p.y === corner.y && p.z === corner.z);
-  console.log(`  Corner (${corner.x},${corner.y},${corner.z}): ${found ? '✓ Found' : '✗ Not found'}`);
+console.log('\nVerifying horizontal corner points are detected as boundaries:');
+horizontalCorners.forEach(corner => {
+  const found = boundaryPoints.some(p => p.x === corner.x && p.y === corner.y);
+  console.log(`  Horizontal corner (${corner.x},${corner.y}): ${found ? '✓ Found' : '✗ Not found'}`);
 });
 
 // Test with a simple sphere-like shape
@@ -99,6 +96,7 @@ console.log(`Interior points incorrectly marked as boundary: ${interiorPointsInB
 
 console.log('\n✓ All tests completed successfully!');
 console.log('\nSummary:');
-console.log('  1. ✓ Boundary points are identified using convex hull algorithm');
-console.log('  2. ✓ Boundary points are stored in a separate array (Set)');
-console.log('  3. ✓ In app.js, boundary points are rendered with red color (1, 0, 0)');
+console.log('  1. ✓ Boundary points are identified using 2D convex hull (horizontal plane only)');
+console.log('  2. ✓ Z-coordinate is ignored when finding boundary points');
+console.log('  3. ✓ Boundary points are stored in a separate array (Set)');
+console.log('  4. ✓ In app.js, boundary points are rendered with red color (1, 0, 0)');

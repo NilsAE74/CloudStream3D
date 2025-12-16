@@ -3,46 +3,72 @@
  * Provides methods for reducing point cloud density
  */
 
-import * as THREE from './lib/three.module.js';
-import { ConvexHull } from './lib/math/ConvexHull.js';
-
 /**
- * Identify boundary/outer points using a 3D convex hull.
- * Returns indices of points that lie on the convex hull (strict outer extremes).
+ * Identify boundary/outer points using a 2D convex hull on the horizontal plane (x, y).
+ * Z-coordinate is ignored to find points furthest out in horizontal direction.
+ * Returns indices of points that lie on the 2D convex hull boundary.
  */
 export function identifyBoundaryPoints(points) {
   if (points.length === 0) return new Set();
-  if (points.length < 4) return new Set(points.map((_, idx) => idx));
+  if (points.length < 3) return new Set(points.map((_, idx) => idx));
 
-  // Build THREE.Vector3 array and a map from Vector3 object to original index
-  const vecs = new Array(points.length);
-  const indexByVector = new Map();
-  for (let i = 0; i < points.length; i++) {
-    const v = new THREE.Vector3(points[i].x, points[i].y, points[i].z);
-    vecs[i] = v;
-    indexByVector.set(v, i);
-  }
+  // Create array of {x, y, index} for 2D convex hull computation
+  const points2D = points.map((p, idx) => ({ x: p.x, y: p.y, index: idx }));
 
-  // Compute convex hull
-  const hull = new ConvexHull();
-  hull.setFromPoints(vecs);
+  // Compute 2D convex hull using Andrew's monotone chain algorithm
+  const hull2D = convexHull2D(points2D);
 
-  // Collect unique vertex indices used by hull faces
-  const boundaryIndices = new Set();
-  const faces = hull.faces;
-  for (let fi = 0; fi < faces.length; fi++) {
-    const face = faces[fi];
-    // Each face is a triangle; iterate its three half-edges
-    let edge = face.edge;
-    for (let k = 0; k < 3; k++) {
-      const vec = edge.vertex.point; // THREE.Vector3
-      const idx = indexByVector.get(vec);
-      if (idx !== undefined) boundaryIndices.add(idx);
-      edge = edge.next;
-    }
-  }
+  // Convert hull point indices to a Set
+  const boundaryIndices = new Set(hull2D.map(p => p.index));
 
   return boundaryIndices;
+}
+
+/**
+ * Compute 2D convex hull using Andrew's monotone chain algorithm.
+ * Returns array of points that form the convex hull in counter-clockwise order.
+ * @param {Array} points - Array of {x, y, index} objects
+ * @returns {Array} - Array of points on the convex hull
+ */
+function convexHull2D(points) {
+  if (points.length < 3) return points;
+
+  // Sort points lexicographically (first by x, then by y)
+  const sorted = [...points].sort((a, b) => {
+    if (a.x !== b.x) return a.x - b.x;
+    return a.y - b.y;
+  });
+
+  // Cross product of vectors OA and OB where O is origin
+  // Returns positive if OAB makes a counter-clockwise turn
+  const cross = (o, a, b) => {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  };
+
+  // Build lower hull
+  const lower = [];
+  for (let i = 0; i < sorted.length; i++) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], sorted[i]) <= 0) {
+      lower.pop();
+    }
+    lower.push(sorted[i]);
+  }
+
+  // Build upper hull
+  const upper = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], sorted[i]) <= 0) {
+      upper.pop();
+    }
+    upper.push(sorted[i]);
+  }
+
+  // Remove last point of each half because it's repeated
+  lower.pop();
+  upper.pop();
+
+  // Concatenate lower and upper hull
+  return lower.concat(upper);
 }
 
 /**
